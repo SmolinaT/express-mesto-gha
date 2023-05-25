@@ -17,4 +17,4 @@
 
 **GitHub**
 
-* [Ссылка на проект в GitHub]()
+* [Ссылка на проект в GitHub](https://github.com/SmolinaT/express-mesto-gha)
