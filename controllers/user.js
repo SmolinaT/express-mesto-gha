@@ -14,14 +14,26 @@ const getUser = (req, res) => {
 };
 
 const getUserbyId = (req, res) => {
-  userModel.findById(req.user._id)
+  userModel.findById(req.params.userId)
+    .orFail(() => {
+      throw new Error('NotFound');
+    })
     .then((user) => {
       res.send(user);
     })
     .catch((err) => {
+      if (err.name === 'CastError') {
+        return res.status(400).send({
+          message: 'Bad Request',
+          err: err.message,
+          stack: err.stack,
+        });
+      }
       if (err.name === 'DocumentNotFoundError') {
         return res.status(404).send({
           message: 'User with _id cannot be found',
+          err: err.message,
+          stack: err.stack,
         });
       }
       return res.status(500).send({

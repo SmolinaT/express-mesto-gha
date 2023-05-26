@@ -4,5 +4,11 @@ const cardRouter = require('./card');
 
 router.use('/users', userRouter);
 router.use('/cards', cardRouter);
+router.use('/*', (req, res) => {
+  res.status(404)
+    .send({
+      message: '404: Not Found',
+    });
+});
 
 module.exports = router;
