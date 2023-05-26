@@ -15,9 +15,7 @@ const getUser = (req, res) => {
 
 const getUserbyId = (req, res) => {
   userModel.findById(req.params.userId)
-    .orFail(() => {
-      throw new Error('NotFound');
-    })
+    .orFail(() => {})
     .then((user) => {
       res.send(user);
     })
