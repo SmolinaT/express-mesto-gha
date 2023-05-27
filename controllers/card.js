@@ -30,12 +30,13 @@ const createCard = (req, res) => {
         res.status(400).send({
           message: 'Invalid data to create card',
         });
+      } else {
+        res.status(500).send({
+          message: 'Internal Server Error',
+          err: err.message,
+          stack: err.stack,
+        });
       }
-      res.status(500).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
     });
 };
 
@@ -55,14 +56,10 @@ const deleteCard = (req, res) => {
         res.status(400)
           .send({
             message: 'Card with _id cannot be found',
-            err: err.message,
-            stack: err.stack,
           });
       } else {
         res.status(500).send({
           message: 'Internal Server Error',
-          err: err.message,
-          stack: err.stack,
         });
       }
     });
@@ -85,15 +82,14 @@ const likeCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(400).send({
+        res.status(400).send({
           message: 'Invalid data to add like',
         });
+      } else {
+        res.status(500).send({
+          message: 'Internal Server Error',
+        });
       }
-      return res.status(500).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
     });
 };
 
@@ -114,15 +110,14 @@ const dislikeCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(400).send({
+        res.status(400).send({
           message: 'Invalid data to remove like',
         });
+      } else {
+        res.status(500).send({
+          message: 'Internal Server Error',
+        });
       }
-      return res.status(500).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
     });
 };
 

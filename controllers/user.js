@@ -4,41 +4,33 @@ const getUser = (req, res) => {
   userModel.find({}).then((users) => {
     res.send(users);
   })
-    .catch((err) => {
+    .catch(() => {
       res.status(500).send({
         message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
       });
     });
 };
 
 const getUserbyId = (req, res) => {
   userModel.findById(req.params.userId)
-    .orFail(() => {})
+    .orFail()
     .then((user) => {
       res.send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(400).send({
+        res.status(400).send({
           message: 'Bad Request',
-          err: err.message,
-          stack: err.stack,
         });
-      }
-      if (err.name === 'DocumentNotFoundError') {
-        return res.status(404).send({
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({
           message: 'User with _id cannot be found',
-          err: err.message,
-          stack: err.stack,
+        });
+      } else {
+        res.status(500).send({
+          message: 'Internal Server Error',
         });
       }
-      return res.status(500).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
     });
 };
 
@@ -54,12 +46,11 @@ const createUser = (req, res) => {
         res.status(400).send({
           message: 'Invalid data to create user',
         });
+      } else {
+        res.status(500).send({
+          message: 'Internal Server Error',
+        });
       }
-      return res.status(500).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
     });
 };
 
@@ -74,6 +65,7 @@ const updateProfile = (req, res) => {
       runValidators: true,
     },
   )
+    .orFail()
     .then((user) => {
       res.send({ data: user });
     })
@@ -82,17 +74,15 @@ const updateProfile = (req, res) => {
         res.status(400).send({
           message: 'Invalid data to update user',
         });
-      }
-      if (err.name === 'DocumentNotFoundError') {
-        return res.status(404).send({
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({
           message: 'User with _id cannot be found',
         });
+      } else {
+        res.status(500).send({
+          message: 'Internal Server Error',
+        });
       }
-      return res.status(500).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
     });
 };
 
@@ -107,6 +97,7 @@ const updateAvatar = (req, res) => {
       runValidators: true,
     },
   )
+    .orFail()
     .then((user) => {
       res.send({ data: user });
     })
@@ -115,17 +106,15 @@ const updateAvatar = (req, res) => {
         res.status(400).send({
           message: 'Invalid data to update avatar',
         });
-      }
-      if (err.name === 'DocumentNotFoundError') {
-        return res.status(404).send({
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({
           message: 'User with _id cannot be found',
         });
+      } else {
+        res.status(500).send({
+          message: 'Internal Server Error',
+        });
       }
-      return res.status(500).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
     });
 };
 
