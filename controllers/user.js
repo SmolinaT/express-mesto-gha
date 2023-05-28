@@ -1,3 +1,4 @@
+const http2 = require('node:http2');
 const userModel = require('../models/user');
 
 const getUser = (req, res) => {
@@ -5,7 +6,7 @@ const getUser = (req, res) => {
     res.send(users);
   })
     .catch(() => {
-      res.status(500).send({
+      res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
         message: 'Internal Server Error',
       });
     });
@@ -19,15 +20,15 @@ const getUserbyId = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({
+        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
           message: 'Bad Request',
         });
       } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({
+        res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
           message: 'User with _id cannot be found',
         });
       } else {
-        res.status(500).send({
+        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
           message: 'Internal Server Error',
         });
       }
@@ -43,11 +44,11 @@ const createUser = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({
+        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
           message: 'Invalid data to create user',
         });
       } else {
-        res.status(500).send({
+        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
           message: 'Internal Server Error',
         });
       }
@@ -71,15 +72,15 @@ const updateProfile = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({
+        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
           message: 'Invalid data to update user',
         });
       } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({
+        res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
           message: 'User with _id cannot be found',
         });
       } else {
-        res.status(500).send({
+        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
           message: 'Internal Server Error',
         });
       }
@@ -103,15 +104,15 @@ const updateAvatar = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({
+        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
           message: 'Invalid data to update avatar',
         });
       } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({
+        res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
           message: 'User with _id cannot be found',
         });
       } else {
-        res.status(500).send({
+        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
           message: 'Internal Server Error',
         });
       }
