@@ -2,6 +2,14 @@ const router = require('express').Router();
 const http2 = require('node:http2');
 const userRouter = require('./user');
 const cardRouter = require('./card');
+const { createUser, login } = require('../controllers/user');
+const { auth } = require('../middlewares/auth');
+const { validateUserBody } = require('../middlewares/validate');
+
+router.post('/signin', validateUserBody, login);
+router.post('/signup', validateUserBody, createUser);
+
+router.use(auth);
 
 router.use('/users', userRouter);
 router.use('/cards', cardRouter);

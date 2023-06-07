@@ -1,20 +1,16 @@
-const http2 = require('node:http2');
 const cardModel = require('../models/card');
+const NotFoundError = require('../errors/not-found-err');
+const BadRequestError = require('../errors/bad-request-err');
+const ForbiddenError = require('../errors/forbidden-err');
 
-const getCard = (req, res) => {
+const getCard = (req, res, next) => {
   cardModel.find({}).then((cards) => {
     res.send(cards);
   })
-    .catch((err) => {
-      res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-        message: 'Internal Server Error',
-        err: err.message,
-        stack: err.stack,
-      });
-    });
+    .catch(next);
 };
 
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
 
   cardModel
@@ -28,45 +24,38 @@ const createCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Invalid data to create card',
-        });
+        next(new BadRequestError('Invalid data to create card'));
       } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-          err: err.message,
-          stack: err.stack,
-        });
+        next(err);
       }
     });
 };
 
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   cardModel.findByIdAndRemove(req.params.cardId)
     .then((card) => {
       if (!card) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'Not found: Invalid _id',
-        });
+        throw new NotFoundError('Not found: Invalid _id');
+      }
+      if (JSON.stringify(card.owner) !== JSON.stringify(req.user._id)) {
+        next(new ForbiddenError('Card cannot be deleted'));
       }
 
-      return res.send(card);
+      return card.deleteOne()
+        .then(() => res.send({
+          message: 'Card was deleted',
+        }));
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST)
-          .send({
-            message: 'Card with _id cannot be found',
-          });
+        next(new BadRequestError('Card with _id cannot be found'));
       } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-        });
+        next(err);
       }
     });
 };
 
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   cardModel.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -74,27 +63,21 @@ const likeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'Not found: Invalid _id',
-        });
+        throw new NotFoundError('Not found: Invalid _id');
       }
 
       return res.send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Invalid data to add like',
-        });
+        next(new BadRequestError('Invalid data to add like'));
       } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-        });
+        next(err);
       }
     });
 };
 
-const dislikeCard = (req, res) => {
+const dislikeCard = (req, res, next) => {
   cardModel.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -102,22 +85,16 @@ const dislikeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'Not found: Invalid _id',
-        });
+        throw new NotFoundError('Not found: Invalid _id');
       }
 
       return res.send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Invalid data to remove like',
-        });
+        next(new BadRequestError('Invalid data to remove like'));
       } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-        });
+        next(err);
       }
     });
 };

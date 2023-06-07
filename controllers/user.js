@@ -1,18 +1,33 @@
-const http2 = require('node:http2');
+const bcrypt = require('bcryptjs');
 const userModel = require('../models/user');
+const { signToken } = require('../utils/jwtAuth').signToken;
+const NotFoundError = require('../errors/not-found-err');
+const BadRequestError = require('../errors/bad-request-err');
+const ConflictError = require('../errors/conflict-err');
+const UnauthorizedError = require('../errors/unauthorized-err');
 
-const getUser = (req, res) => {
+const MONGO_DUPLICATE_KEY_ERROR = 11000;
+const SALT_ROUNDS = 10;
+
+const getUser = (req, res, next) => {
   userModel.find({}).then((users) => {
     res.send(users);
   })
-    .catch(() => {
-      res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-        message: 'Internal Server Error',
-      });
-    });
+    .catch(next);
 };
 
-const getUserbyId = (req, res) => {
+const getUserMe = (req, res, next) => {
+  userModel.findById(req.params.userId)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      res.send(user);
+    })
+    .catch(next);
+};
+
+const getUserbyId = (req, res, next) => {
   userModel.findById(req.params.userId)
     .orFail()
     .then((user) => {
@@ -20,42 +35,49 @@ const getUserbyId = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Bad Request',
-        });
+        next(new BadRequestError('Bad Request'));
       } else if (err.name === 'DocumentNotFoundError') {
-        res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'User with _id cannot be found',
-        });
+        next(new NotFoundError('User with _id cannot be found'));
       } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-        });
+        next(err);
       }
     });
 };
 
-const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
+const createUser = (req, res, next) => {
+  const {
+    name,
+    about,
+    avatar,
+    email,
+    password,
+  } = req.body;
 
-  userModel.create({ name, about, avatar })
-    .then((user) => {
-      res.status(201).send(user);
-    })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Invalid data to create user',
+  bcrypt.hash(password, SALT_ROUNDS).then((hash) => {
+    console.log(hash);
+
+    userModel.create({ name, about, avatar })
+      .then(() => {
+        res.status(201).send({
+          name,
+          about,
+          avatar,
+          email,
         });
-      } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-        });
-      }
-    });
+      })
+      .catch((err) => {
+        if (err.name === MONGO_DUPLICATE_KEY_ERROR) {
+          next(new ConflictError('Such a user already exists'));
+        } else if (err.name === 'ValidationError') {
+          next(new BadRequestError('Invalid data to create user'));
+        } else {
+          next(err);
+        }
+      });
+  });
 };
 
-const updateProfile = (req, res) => {
+const updateProfile = (req, res, next) => {
   const { name, about } = req.body;
 
   userModel.findByIdAndUpdate(
@@ -72,22 +94,16 @@ const updateProfile = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Invalid data to update user',
-        });
+        next(new BadRequestError('Invalid data to update user'));
       } else if (err.name === 'DocumentNotFoundError') {
-        res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'User with _id cannot be found',
-        });
+        next(new NotFoundError('User with _id cannot be found'));
       } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-        });
+        next(err);
       }
     });
 };
 
-const updateAvatar = (req, res) => {
+const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
   userModel.findByIdAndUpdate(
@@ -104,25 +120,43 @@ const updateAvatar = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Invalid data to update avatar',
-        });
+        next(new BadRequestError('Invalid data to update avatar'));
       } else if (err.name === 'DocumentNotFoundError') {
-        res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'User with _id cannot be found',
-        });
+        next(new NotFoundError('User with _id cannot be found'));
       } else {
-        res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-          message: 'Internal Server Error',
-        });
+        next(err);
       }
     });
 };
 
+const loginUser = (req, res, next) => {
+  const { email, password } = req.body;
+
+  userModel.findOne({ email }).select('+password')
+    .orFail(() => {
+      throw new UnauthorizedError('Email or password is incorrect');
+    })
+    .then((user) => {
+      Promise.all([user, bcrypt.compare(password, user.password)]);
+    })
+    .then(([user, isEqual]) => {
+      if (!isEqual) {
+        throw new UnauthorizedError('Email or password is incorrect');
+      }
+
+      const token = signToken({ _id: user._id });
+
+      res.status(200).send({ token });
+    })
+    .catch(next);
+};
+
 module.exports = {
   getUser,
+  getUserMe,
   getUserbyId,
   createUser,
   updateProfile,
   updateAvatar,
+  loginUser,
 };
