@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const userModel = require('../models/user');
-const { signToken } = require('../utils/jwtAuth').signToken;
+const { signToken } = require('../utils/jwtAuth');
 const NotFoundError = require('../errors/not-found-err');
 const BadRequestError = require('../errors/bad-request-err');
 const ConflictError = require('../errors/conflict-err');
@@ -143,9 +143,7 @@ const loginUser = (req, res, next) => {
     .orFail(() => {
       throw new UnauthorizedError('Email or password is incorrect');
     })
-    .then((user) => {
-      Promise.all([user, bcrypt.compare(password, user.password)]);
-    })
+    .then((user) => Promise.all([user, bcrypt.compare(password, user.password)]))
     .then(([user, isEqual]) => {
       if (!isEqual) {
         throw new UnauthorizedError('Email or password is incorrect');
