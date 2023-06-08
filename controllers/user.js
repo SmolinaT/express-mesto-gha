@@ -53,28 +53,35 @@ const createUser = (req, res, next) => {
     password,
   } = req.body;
 
-  bcrypt.hash(password, SALT_ROUNDS).then((hash) => {
-    console.log(hash);
+  bcrypt.hash(password, SALT_ROUNDS)
+    .then((hash) => {
+      console.log(hash);
 
-    userModel.create({ name, about, avatar })
-      .then(() => {
-        res.status(201).send({
-          name,
-          about,
-          avatar,
-          email,
-        });
+      userModel.create({
+        name,
+        about,
+        avatar,
+        email,
+        password: hash,
       })
-      .catch((err) => {
-        if (err.name === MONGO_DUPLICATE_KEY_ERROR) {
-          next(new ConflictError('Such a user already exists'));
-        } else if (err.name === 'ValidationError') {
-          next(new BadRequestError('Invalid data to create user'));
-        } else {
-          next(err);
-        }
-      });
-  });
+        .then(() => {
+          res.status(201).send({
+            name,
+            about,
+            avatar,
+            email,
+          });
+        })
+        .catch((err) => {
+          if (err.name === MONGO_DUPLICATE_KEY_ERROR || err.code === 11000) {
+            next(new ConflictError('Such a user already exists'));
+          } else if (err.name === 'ValidationError') {
+            next(new BadRequestError('Invalid data to create user'));
+          } else {
+            next(err);
+          }
+        });
+    });
 };
 
 const updateProfile = (req, res, next) => {
