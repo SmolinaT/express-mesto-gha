@@ -2,22 +2,24 @@ const { checkToken } = require('../utils/jwtAuth');
 const UnauthorizedError = require('../errors/unauthorized-err');
 
 const auth = (req, res, next) => {
-  if (!req.headers.authorization) {
-    next(new UnauthorizedError('User is not logged in'));
-    return;
+  const { authorization } = req.headers;
+  let payload;
+
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    return next(new UnauthorizedError('User is not logged in'));
   }
 
-  const token = req.headers.authorization.raplace('Bearer', '');
+  const token = authorization.replace('Bearer ', '');
 
   try {
-    const payload = checkToken(token);
+    payload = checkToken(token);
 
     req.user = payload;
-
-    next();
   } catch (err) {
     next(new UnauthorizedError('User is not logged in'));
   }
+
+  return next();
 };
 
 module.exports = {

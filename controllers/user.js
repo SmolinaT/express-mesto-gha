@@ -150,7 +150,6 @@ const loginUser = (req, res, next) => {
       }
 
       const token = signToken({ _id: user._id });
-
       res.status(200).send({ token });
     })
     .catch(next);
